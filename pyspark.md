@@ -10,3 +10,8 @@
 - **`df.printSchema()`** :- list the columns and there types
 - **`DataFrame.collect()`** :- collects the distributed data to the driver side as the local data in Python. Note that this can throw an out-of-memory error when the dataset is too large to fit in the driver side because it collects all the data from executors to the driver side.
 - **`DataFrame.take()/DataFrame.tail()`** :- In order to avoid throwing an out-of-memory exception, use DataFrame.take() or DataFrame.tail().
+- **`df.toPandas()`** :- conversion back to a pandas DataFrame to leverage pandas API.
+- **`df.select(df.c).show()`** :- It will select the column c from the rdd df
+- **`df.withColumn('upper_c', upper(df.c)).show()`** :- It will add 1 more column into the df rdd with name as upper_c and value as df.c columns in upper case
+- **`df.filter(df.a == 1).show()`** :- select a subset of rowsbase on the columns codition.
+-**`df.filter((col("age") < 30) | (col("name") == "Eve"))`**  :
