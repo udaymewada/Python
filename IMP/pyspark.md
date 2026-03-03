@@ -14,4 +14,19 @@
 - **`df.select(df.c).show()`** :- It will select the column c from the rdd df
 - **`df.withColumn('upper_c', upper(df.c)).show()`** :- It will add 1 more column into the df rdd with name as upper_c and value as df.c columns in upper case
 - **`df.filter(df.a == 1).show()`** :- select a subset of rowsbase on the columns codition.
--**`df.filter((col("age") < 30) | (col("name") == "Eve"))`**  :
+-**`df.filter((col("age") < 30) | (col("name") == "Eve"))`**  : If we need multiple filter conditions
+  & → AND
+| → OR
+~ → NOT
+
+- **`df.filter((col("age") < 30) )`**function returns a Column object based on the given column name
+ - **`UDF FUNCTIONS`** : Below code will do +1 to df.a columns
+```
+   @pandas_udf('long')
+def pandas_plus_one(series: pd.Series) -> pd.Series:
+    //Simply plus one by using pandas Series.
+    return series + 1
+
+df.select(pandas_plus_one(df.a)).show()
+```
+- 
