@@ -55,3 +55,32 @@ df.mapInPandas(pandas_filter_func, schema=df.schema).show()
         avg("Value").alias("AverageValue"),
         count("*").alias("RowCount")`**
   It will first group based on the columns Category and Type and then find sum,avg and count
+
+  -**`.cogroup()`** :- In PySpark, the cogroup() transformation is used to group values from two or more Pair RDDs (RDDs of key-value pairs) by their keys.
+It returns a new RDD where each key is associated with a tuple of iterables — one iterable for each RDD’s values for that key.
+
+```
+df1 = spark.createDataFrame(
+    [(20000101, 1, 1.0), (20000101, 2, 2.0), (20000102, 1, 3.0), (20000102, 2, 4.0)],
+    ('time', 'id', 'v1'))
+
+df2 = spark.createDataFrame(
+    [(20000101, 1, 'x'), (20000101, 2, 'y')],
+    ('time', 'id', 'v2'))
+
+def merge_ordered(l, r):
+    return pd.merge_ordered(l, r)
+
+df1.groupby('id').cogroup(df2.groupby('id')).applyInPandas(
+    merge_ordered, schema='time int, id int, v1 double, v2 string').show()
+
+OUTPUT 
++--------+---+---+---+
+|    time| id| v1| v2|
++--------+---+---+---+
+|20000101|  1|1.0|  x|
+|20000102|  1|3.0|  x|
+|20000101|  2|2.0|  y|
+|20000102|  2|4.0|  y|
++--------+---+---+---+
+```
