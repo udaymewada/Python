@@ -166,4 +166,4 @@ inplace: Modify the DataFrame in place without returning a new one.
 ```
 - **`psdf1.dropna(how='any')`** :- To drop any rows that have missing data.
 - **`psdf1.fillna(5')`** :- Filling missing data.
-- 
+- **`psdf.groupby(['A', 'B']).sum()`** :- Grouping by multiple columns forms a hierarchical index, and again we can apply the sum function. 
