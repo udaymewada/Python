@@ -92,3 +92,78 @@ OUTPUT
 - spark.read.parquet('bar.parquet').show()
 - df.write.orc('zoo.orc')
 - spark.read.orc('zoo.orc').show()
+
+# Pandas API on Spark
+
+```
+import pandas as pd
+import numpy as np
+import pyspark.pandas as ps
+from pyspark.sql import SparkSession
+```
+- **`s = ps.Series([1, 3, 5, np.nan, 6, 8]) `** :- Creating a pandas-on-Spark Series by passing a list of values
+```
+s
+```
+```
+0    1.0
+1    3.0
+2    5.0
+3    NaN
+4    6.0
+5    8.0
+dtype: float64
+```
+
+- Creating a pandas-on-Spark DataFrame by passing a dict of objects that can be converted to series-like.
+  
+``
+psdf = ps.DataFrame(
+    {'a': [1, 2, 3, 4, 5, 6],
+     'b': [100, 200, 300, 400, 500, 600],
+     'c': ["one", "two", "three", "four", "five", "six"]},
+    index=[10, 20, 30, 40, 50, 60])
+``
+
+```
+psdf
+	a	b	c
+10	1	100	one
+20	2	200	two
+30	3	300	three
+40	4	400	four
+50	5	500	five
+60	6	600	six
+
+```
+
+- **`dates = pd.date_range('20130101', periods=6)`** : it will generate a list of 5 dates, starting from mentioned date
+- **`psdf = sdf.pandas_api()`** :- Creating pandas-on-Spark DataFrame from Spark DataFrame.
+- **`psdf.T`** :- Transposing your data(means row will change to columns and vice-versa)
+- **`psdf.sort_index(ascending=False)`** :- sorting by index
+- **`psdf.sort_values(by='B')`** :- sorting bu value
+
+- Pandas API on Spark primarily uses the value np.nan to represent missing data. It is by default not included in computations.
+- Use the reindex() method to modify the row or column labels.
+- Below code will add column E to the data frame
+
+  ```
+  pdf1 = pdf.reindex(index=dates[0:4], columns=list(pdf.columns) + ['E'])
+  ```
+
+- **`DataFrame.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)`**
+```
+Key Parameters:
+axis:
+0 → drop rows (default)
+1 → drop columns
+how:
+'any' → drop if any value is NaN (default)
+'all' → drop only if all values are NaN
+thresh: Keep rows/columns with at least this many non-NaN values.
+subset: Specify columns to check for NaNs.
+inplace: Modify the DataFrame in place without returning a new one.
+```
+- **`psdf1.dropna(how='any')`** :- To drop any rows that have missing data.
+- **`psdf1.fillna(5')`** :- Filling missing data.
+- 
