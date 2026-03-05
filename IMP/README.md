@@ -56,7 +56,7 @@ df.mapInPandas(pandas_filter_func, schema=df.schema).show()
         count("*").alias("RowCount")`**
   It will first group based on the columns Category and Type and then find sum,avg and count
 
-  -**`.cogroup()`** :- In PySpark, the cogroup() transformation is used to group values from two or more Pair RDDs (RDDs of key-value pairs) by their keys.
+- **`.cogroup()`** :- In PySpark, the cogroup() transformation is used to group values from two or more Pair RDDs (RDDs of key-value pairs) by their keys.
 It returns a new RDD where each key is associated with a tuple of iterables — one iterable for each RDD’s values for that key.
 
 ```
@@ -84,3 +84,11 @@ OUTPUT
 |20000102|  2|4.0|  y|
 +--------+---+---+---+
 ```
+
+# Getting Data In/Out
+- df.write.csv('foo.csv', header=True)  : It will write header also
+- spark.read.csv('foo.csv', header=True,inferSchema=True).show() :- It automatically detects column data types instead of treating all as strings. and If you omit inferSchema, all columns will be read as strings by default.
+- df.write.parquet('bar.parquet')
+- spark.read.parquet('bar.parquet').show()
+- df.write.orc('zoo.orc')
+- spark.read.orc('zoo.orc').show()
