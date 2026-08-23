@@ -6,20 +6,19 @@
 * The For each task in Lakeflow Jobs is designed to handle empty arrays gracefully. If an input array is empty, the task has nothing to iterate over, so it completes without running any child iterations. The task itself is marked as successful because an empty list is considered a valid runtime input.
 * The system.information_schema tables in Unity Catalog (and the information_schema present in every catalog) provide a standardized, SQL-queryable interface to metadata. This feature allows users to query information about catalogs, schemas, and tables—including owner/creator and creation timestamps—across the entire environment.
 * When you change the clustering strategy using the ALTER TABLE ... CLUSTER BY command, Databricks updates the table metadata. While future writes will use the new clustering keys, existing data files are not immediately reorganized. The data remains in its current physical layout until an OPTIMIZE command is executed (either manually or via predictive optimization), which triggers the actual reorganization of the data according to the new clustering key.
-*In file notification mode, Auto Loader relies on cloud-native event infrastructure to detect new files efficiently without listing the directory repeatedly. Databricks requires permissions to create and manage specific cloud resources—such as AWS SNS/SQS, Azure Event Grid/Queue Storage, or GCP Pub/Sub topics/subscriptions—to subscribe to storage events and notify the stream of new arrivals.
-*Serverless compute for Workflows allows users to run Databricks Workflows without provisioning or managing any infrastructure. Databricks automatically handles scaling, security, and resource management, while providing significantly faster startup times compared to classic compute.
-
+* In file notification mode, Auto Loader relies on cloud-native event infrastructure to detect new files efficiently without listing the directory repeatedly. Databricks requires permissions to create and manage specific cloud resources—such as AWS SNS/SQS, Azure Event Grid/Queue Storage, or GCP Pub/Sub topics/subscriptions—to subscribe to storage events and notify the stream of new arrivals.
+* Serverless compute for Workflows allows users to run Databricks Workflows without provisioning or managing any infrastructure. Databricks automatically handles scaling, security, and resource management, while providing significantly faster startup times compared to classic compute.
 *Fleet instance types let Databricks automatically choose from a pool of similar cloud instance types within a specified size range, increasing the chance of acquiring compute when a specific type is out of stock. This directly addresses the regional availability issue without manual intervention.
 CREATE TABLE AS (CTAS): Batch ingestion using read\_files() that creates Delta tables from raw files. Best for smaller, ad hoc datasets.
-*A 'Bootstrap Timeout' error occurs when the cluster nodes (Data Plane) are unable to communicate with the Databricks Control Plane or required cloud endpoints. In restricted network environments, this is frequently caused by a missing NAT gateway, misconfigured route tables, or firewall rules blocking necessary outbound traffic (e.g., HTTPS on port 443), preventing the node from signaling its successful startup to the control plane.
-*Decreasing spark.sql.shuffle.partitions reduces the number of shuffle tasks Spark creates for the join stage. By default, Spark uses 200 partitions for shuffles. For small datasets (15 MB), this results in too many tiny tasks, where the overhead of scheduling the tasks is greater than the actual processing time. Reducing this value consolidates data into fewer, more efficient tasks.
+* A 'Bootstrap Timeout' error occurs when the cluster nodes (Data Plane) are unable to communicate with the Databricks Control Plane or required cloud endpoints. In restricted network environments, this is frequently caused by a missing NAT gateway, misconfigured route tables, or firewall rules blocking necessary outbound traffic (e.g., HTTPS on port 443), preventing the node from signaling its successful startup to the control plane.
+* Decreasing spark.sql.shuffle.partitions reduces the number of shuffle tasks Spark creates for the join stage. By default, Spark uses 200 partitions for shuffles. For small datasets (15 MB), this results in too many tiny tasks, where the overhead of scheduling the tasks is greater than the actual processing time. Reducing this value consolidates data into fewer, more efficient tasks.
 
 COPY INTO: Incremental batch ingestion that is idempotent and retriable. Skips already-loaded files and supports format and copy options for fine-grained control.
 
 AUTO LOADER: The most scalable method, built on Spark Structured Streaming. Supports both Python and SQL (via Declarative Pipelines), processes billions of files, and automatically handles schema evolution.
 
 
-
+```
 CREATE TABLE new\_table AS
 
          SELECT \*
@@ -34,7 +33,8 @@ CREATE TABLE new\_table AS
 
          );
 
-
+```
+```
 
 CREATE TABLE new\_table;
 
@@ -50,12 +50,12 @@ CREATE TABLE new\_table;
 
        COPY\_OPTIONS (<options>)
 
+```
 
 
 
-
-Python Auto Loader
-
+###Python Auto Loader
+```
 (spark
 
  .readStream
@@ -77,10 +77,10 @@ Python Auto Loader
    .toTable("catalog.database.table")
 
 )
+```
 
 
-
-
+```
 
 Auto Loader with SQL (Declarative Pipelines)
 
@@ -102,10 +102,8 @@ FROM STREAM read\_files(
 
 )
 
-
-
-
-
+```
+```
 MERGE INTO target\_table target
 
 USING source\_table source
@@ -129,9 +127,9 @@ WHEN NOT MATCHED THEN
  INSERT (id, first\_name, email, sign\_up\_date
 
  status)
+```
 
-
-Dynamic Value References using {{ }} notation unlock powerful runtime capabilities that make workflows truly adaptive:
+- Dynamic Value References using {{ }} notation unlock powerful runtime capabilities that make workflows truly adaptive:
 
 Job Context References:
 
