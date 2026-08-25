@@ -17,7 +17,12 @@ CREATE TABLE AS (CTAS): Batch ingestion using read\_files() that creates Delta t
 * The modern Databricks CLI (v0.200+) is required for bundle deployments. The official installation script via curl is the recommended method for Linux environments, and the databricks/setup-cli GitHub Action is the preferred method for GitHub-based CI/CD pipelines to ensure the correct version is available.
 * In Databricks Unity Catalog, the DESCRIBE EXTENDED (or DESCRIBE TABLE EXTENDED) command provides detailed metadata about a table. This includes specific fields for row filters and column masks, showing which policies are applied to which columns or the table itself.
 * Databricks documentation recommends setting up Git automation (e.g., via webhooks and the Repos API) to update a production Git folder after a successful merge. The Repos API update endpoint allows you to pull the latest changes from the remote branch. This is a valid method for automating code deployment in workspace-level Git folders, though Databricks also recommends Declarative Automation Bundles for more comprehensive CI/CD.
-* 
+* The Table Update trigger's role is strictly to signal that the source table has changed and initiate the job. To process only the new or changed rows, the notebook must use mechanisms like Structured Streaming (which tracks progress via checkpoints) or Delta Change Data Feed (CDF) to query specific versions or change types.
+* High Garbage Collection (GC) Time indicates that the JVM is spending a significant portion of its execution time reclaiming memory instead of performing useful work. When GC time represents a large fraction of task time (80% in this scenario), it is a clear indicator of severe memory pressure, which can be caused by insufficient executor memory, inefficient object allocation, or improper serialization.
+* According to Databricks documentation, when the job's max_concurrent_runs limit is reached and queueing is not enabled, new runs are immediately set to Skipped status. This means the run never initiated execution due to concurrency constraints, and it will not be retried automatically. Enabling queueing allows such runs to be held for up to 48 hours until capacity frees.
+
+
+
 
 COPY INTO: Incremental batch ingestion that is idempotent and retriable. Skips already-loaded files and supports format and copy options for fine-grained control.
 
