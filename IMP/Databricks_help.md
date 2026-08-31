@@ -1,184 +1,67 @@
-* ***The VALIDATE keyword*** (such as *`VALIDATE`* ALL or VALIDATE <num\_rows> ROWS) is the specific Databricks SQL syntax for COPY INTO that allows users to preview the load and check for parsing or schema errors without actually writing data to the target table.
-* ***when addNewColumns*** is set, Auto Loader detects the new column, fails the stream with an ***UnknownFieldException***, and automatically updates the schema in the*** cloudFiles.schemaLocation*** by appending the new column. Databricks recommends configuring the stream with Databricks Workflows (or Lakeflow Jobs) to automatically retry and restart, allowing the stream to resume with the updated schema. This is the documented behavior for addNewColumns mode.
-* For a small daily payload (< 1 MB) from a proprietary REST API with no standard connector, a custom Python script using the requests library is the most practical approach. The script can be run in a Databricks Notebook or Job to fetch the data and write it to a Delta table.
-* ***Setting cloudFiles.useNotifications*** to true enables Auto Loader to use cloud provider event services (such as AWS S3 Event Notifications and SQS) instead of directory listing. This method is much more scalable and cost-effective for large datasets because it only tracks new files as they arrive rather than scanning the entire directory structure.
-* Lakeflow Connect (and Lakehouse Federation) utilizes Unity Catalog Connection objects to securely store and manage the connection details (such as host, port, and credentials) for external systems. These objects allow for centralized governance and access control within the Unity Catalog metastore.
-* ***The For each task in Lakeflow Jobs*** is designed to handle empty arrays gracefully. If an input array is empty, the task has nothing to iterate over, so it completes without running any child iterations. The task itself is marked as successful because an empty list is considered a valid runtime input.
-* ***The system.information_schema*** tables in Unity Catalog (and the information_schema present in every catalog) provide a standardized, SQL-queryable interface to metadata. This feature allows users to query information about catalogs, schemas, and tables—including owner/creator and creation timestamps—across the entire environment.
-* ***When you change the clustering strategy using the ALTER TABLE ... CLUSTER BY command***, Databricks updates the table metadata. While future writes will use the new clustering keys, existing data files are not immediately reorganized. The data remains in its current physical layout until an OPTIMIZE command is executed (either manually or via predictive optimization), which triggers the actual reorganization of the data according to the new clustering key.
-* ***In file notification mode***, Auto Loader relies on cloud-native event infrastructure to detect new files efficiently without listing the directory repeatedly. Databricks requires permissions to create and manage specific cloud resources—such as AWS SNS/SQS, Azure Event Grid/Queue Storage, or GCP Pub/Sub topics/subscriptions—to subscribe to storage events and notify the stream of new arrivals.
-* ***Serverless compute*** for Workflows allows users to run Databricks Workflows without provisioning or managing any infrastructure. Databricks automatically handles scaling, security, and resource management, while providing significantly faster startup times compared to classic compute.
-* ***Fleet instance types*** let Databricks automatically choose from a pool of similar cloud instance types within a specified size range, increasing the chance of acquiring compute when a specific type is out of stock. This directly addresses the regional availability issue without manual intervention.
-CREATE TABLE AS (CTAS): Batch ingestion using read\_files() that creates Delta tables from raw files. Best for smaller, ad hoc datasets.
-* A ***'Bootstrap Timeout'*** error occurs when the cluster nodes (Data Plane) are unable to communicate with the Databricks Control Plane or required cloud endpoints. In restricted network environments, this is frequently caused by a missing NAT gateway, misconfigured route tables, or firewall rules blocking necessary outbound traffic (e.g., HTTPS on port 443), preventing the node from signaling its successful startup to the control plane.
-* ***Decreasing spark.sql.shuffle.partitions*** reduces the number of shuffle tasks Spark creates for the join stage. By default, Spark uses 200 partitions for shuffles. For small datasets (15 MB), this results in too many tiny tasks, where the overhead of scheduling the tasks is greater than the actual processing time. Reducing this value consolidates data into fewer, more efficient tasks.
-* According to Databricks documentation, ***databricks bundle plan*** is the recommended command for previewing the changes that a deployment will apply to the workspace. It functions like terraform plan, showing a human-readable summary of resources to be created, updated, or deleted without making any actual changes.
-* ***Photon*** is a high-performance, vectorized query engine written in C++ and developed by Databricks. It is designed to be compatible with Apache Spark APIs to significantly accelerate SQL and DataFrame workloads by leveraging modern CPU instruction sets and optimized execution.
-* The modern Databricks CLI (v0.200+) is required for bundle deployments. The official installation script via curl is the recommended method for Linux environments, and the databricks/setup-cli GitHub Action is the preferred method for GitHub-based CI/CD pipelines to ensure the correct version is available.
-* In Databricks Unity Catalog, the ***DESCRIBE EXTENDED (or DESCRIBE TABLE EXTENDED)*** command provides detailed metadata about a table. This includes specific fields for row filters and column masks, showing which policies are applied to which columns or the table itself.
-* Databricks documentation recommends setting up Git automation*** (e.g., via webhooks and the Repos API)*** to update a production Git folder after a successful merge. The Repos API update endpoint allows you to pull the latest changes from the remote branch. This is a valid method for automating code deployment in workspace-level Git folders, though Databricks also recommends Declarative Automation Bundles for more comprehensive CI/CD.
-* ***The Table Update trigger's*** role is strictly to signal that the source table has changed and initiate the job. To process only the new or changed rows, the notebook must use mechanisms like Structured Streaming (which tracks progress via checkpoints) or Delta Change Data Feed (CDF) to query specific versions or change types.
-* ***High Garbage Collection (GC)*** Time indicates that the JVM is spending a significant portion of its execution time reclaiming memory instead of performing useful work. When GC time represents a large fraction of task time (80% in this scenario), it is a clear indicator of severe memory pressure, which can be caused by insufficient executor memory, inefficient object allocation, or improper serialization.
-* According to Databricks documentation, when the job's ***max_concurrent_runs*** limit is reached and queueing is not enabled, new runs are immediately set to ***Skipped status***. This means the run never initiated execution due to concurrency constraints, and it will not be retried automatically. Enabling queueing allows such runs to be held for up to 48 hours until capacity frees.
-* For Unity Catalog-governed pipelines, checkpoint and schema locations should be stored in a governed storage location, such as an external location registered in Unity Catalog or a Unity Catalog volume. This ensures the metadata and state files are secured, audited, and managed under Unity Catalog access controls.
-* The ***WITH ROW FILTER*** clause specifies the UDF and the column to pass as an argument. The UDF must return a BOOLEAN; rows where it returns FALSE or NULL are filtered out.
-* The ***spark.sql.autoBroadcastJoinThreshold*** parameter configures the maximum size, in bytes, for a table that will be broadcast to all worker nodes when performing a join.
-* atabricks Jobs (often referred to as Lakeflow Jobs in modern Databricks workflows) allow users to define a ***retry policy*** at the task level. This policy specifies how many times a task should be automatically retried upon failure. This is the appropriate mechanism for handling transient server-side errors like a 502 Bad Gateway without modifying the notebook code.
+# DDEA — Advanced Concepts Summary (Quick Reference)
 
+*Condensed from detailed exam notes — ingestion, jobs, tuning, governance, CI/CD*
 
+---
 
+## Ingestion
 
-COPY INTO: Incremental batch ingestion that is idempotent and retriable. Skips already-loaded files and supports format and copy options for fine-grained control.
+- **COPY INTO `VALIDATE`**: `VALIDATE ALL` or `VALIDATE <n> ROWS` previews a load (checks parsing/schema errors) **without writing data**.
+- **COPY INTO**: incremental, idempotent, retriable — skips already-loaded files.
+- **Auto Loader**: most scalable ingestion method, built on Structured Streaming; handles billions of files; supports Python and SQL (Declarative Pipelines).
+- **Auto Loader `addNewColumns`**: on detecting a new column, the stream fails with `UnknownFieldException` and auto-updates schema in `cloudFiles.schemaLocation`. Pair with a Job/Workflow retry policy so the stream auto-resumes with the new schema.
+- **`cloudFiles.useNotifications = true`**: switches Auto Loader from directory listing to cloud event-based detection (S3 Event Notifications/SQS, Event Grid, Pub/Sub) — far more scalable/cheaper for large file volumes. Requires cloud permissions to create/manage these event resources.
+- **CTAS with `read_files()`**: simple batch ingestion pattern for smaller/ad hoc datasets — `CREATE TABLE x AS SELECT * FROM read_files(path, format => '...')`.
+- **No native connector, small payload (<1MB REST API)**: just write a custom Python script (`requests` library) in a notebook/Job — no need for a heavyweight connector.
+- **Lakeflow Connect / Lakehouse Federation**: both use **Unity Catalog Connection objects** to centrally store/govern credentials and connection details for external systems.
 
-AUTO LOADER: The most scalable method, built on Spark Structured Streaming. Supports both Python and SQL (via Declarative Pipelines), processes billions of files, and automatically handles schema evolution.
+## Lakeflow Jobs
 
+- **`For each` task**: handles an empty array gracefully — completes successfully with zero iterations (empty list = valid input).
+- **Table Update trigger**: only signals "source changed, start the job." It does **not** filter to new rows — use Structured Streaming (checkpoints) or **Delta Change Data Feed (CDF)** inside the job to process only changed rows.
+- **Retry policy**: set at the task level to auto-retry transient failures (e.g., HTTP 502) — no code changes needed.
+- **`max_concurrent_runs` reached, queueing off**: new run is immediately marked **Skipped** (never executes, not auto-retried). Enable **queueing** to hold runs up to 48 hours until capacity frees.
+- **Dynamic Value References (`{{ }}`)**: runtime templating for adaptive workflows —
+  - Job context: `{{job.start_time.day}}`, `{{job.run_id}}`, `{{job.parameters.environment}}`
+  - Task context: `{{task.name}}`, `{{task.retry_count}}`
+  - Inter-task: `{{tasks.<task-name>.values.<key>}}` — pass computed values/paths between tasks.
 
-```
-CREATE TABLE new\_table AS
+## Data Quality (Declarative Pipelines / DLT)
 
-         SELECT \*
+- `CONSTRAINT ... EXPECT (condition)` — flags violations, keeps rows (default).
+- `... ON VIOLATION FAIL UPDATE` — fails the whole pipeline update on violation.
+- `... ON VIOLATION DROP ROW` — silently drops the violating row.
+- All three can coexist on one streaming table for layered data quality control.
 
-         FROM read\_files(
+## Delta Lake / Optimization
 
-           <path\_to\_file(s)>,
+- **`ALTER TABLE ... CLUSTER BY`**: updates table metadata only — future writes use the new key, but **existing files are not reorganized** until `OPTIMIZE` runs (manually or via Predictive Optimization).
+- **`spark.sql.autoBroadcastJoinThreshold`**: max byte size of a table Spark will auto-broadcast in a join.
+- **Decreasing `spark.sql.shuffle.partitions`**: for small datasets, default 200 shuffle partitions creates too many tiny tasks (scheduling overhead > processing time) — lowering it consolidates work into fewer, more efficient tasks.
+- **Photon**: Databricks' vectorized C++ query engine, API-compatible with Spark, accelerates SQL/DataFrame workloads via modern CPU instructions.
+- **MERGE INTO**: standard upsert/delete pattern — `WHEN MATCHED ... UPDATE/DELETE`, `WHEN NOT MATCHED ... INSERT`, with conditional logic (e.g., by `status` flag).
 
-           format => '<file\_type>',
+## Cluster / Infra Troubleshooting
 
-           <other\_format\_specific\_options>
+- **Bootstrap Timeout**: node (data plane) can't reach the control plane/cloud endpoints — usually missing NAT gateway, bad route tables, or firewall blocking outbound HTTPS (443).
+- **File notification mode permissions**: Databricks needs cloud permissions to create/manage SNS/SQS (AWS), Event Grid/Queue Storage (Azure), or Pub/Sub (GCP) to subscribe to storage events.
+- **High GC (Garbage Collection) time** (e.g., 80% of task time): strong signal of memory pressure — caused by insufficient executor memory, inefficient object allocation, or poor serialization.
+- **Fleet instance types**: Databricks auto-picks from a pool of similar instance types in a size range — improves chance of getting compute when a specific instance type is unavailable in a region.
+- **Serverless compute for Workflows**: no infra to provision/manage; Databricks handles scaling/security; much faster startup than classic compute.
 
-         );
+## Governance (Unity Catalog)
 
-```
-```
+- **`DESCRIBE EXTENDED` / `DESCRIBE TABLE EXTENDED`**: shows detailed metadata, including which **row filter** and **column mask** policies are applied and to which columns.
+- **`WITH ROW FILTER`**: attaches a UDF (must return `BOOLEAN`) to a table; rows where it returns `FALSE`/`NULL` are filtered out.
+- **`system.information_schema`** (and per-catalog `information_schema`): standardized SQL-queryable metadata — catalogs, schemas, tables, owners, creation timestamps — across the whole environment.
+- **Governed storage for UC pipelines**: checkpoint/schema locations should live in a UC **external location** or **UC volume** — keeps state files secured/audited under UC access controls.
 
-CREATE TABLE new\_table;
+## CI/CD
 
-       
+- **`databricks bundle plan`**: previews what a bundle deployment will change (create/update/delete) — like `terraform plan` — without applying anything.
+- **Databricks CLI v0.200+**: required for bundle deployments. Install via official curl script (Linux) or the `databricks/setup-cli` GitHub Action (CI/CD pipelines).
+- **Git automation for workspace-level Git Folders**: use webhooks + the **Repos API** update endpoint to auto-pull latest changes into a production Git folder after a merge. Valid, but Databricks recommends **Declarative Automation Bundles (DABs)** for more complete CI/CD.
 
-       COPY INTO new\_table
+---
 
-       FROM '<dir\_path>'
-
-       FILEFORMAT = <file\_type>
-
-       FORMAT\_OPTIONS (<options>)
-
-       COPY\_OPTIONS (<options>)
-
-```
-
-
-
-###Python Auto Loader
-```
-(spark
-
- .readStream
-
-   .format("cloudFiles")
-
-   .option("cloudFiles.format", "json")
-
-   .option("cloudFiles.schemaLocation", "<checkpoint\_path>")
-
-   .load("/Volumes/catalog/schema/files")
-
- .writeStream
-
-   .option("checkpointLocation", "<checkpoint\_path>")
-
-   .trigger(processingTime="5 seconds")
-
-   .toTable("catalog.database.table")
-
-)
-```
-
-
-```
-
-Auto Loader with SQL (Declarative Pipelines)
-
-CREATE OR REFRESH STREAMING TABLE
-
- catalog.schema.table
-
-SCHEDULE EVERY 1 HOUR
-
-AS
-
-SELECT \*
-
-FROM STREAM read\_files(
-
- '<dir\_path>',
-
- format => '<file\_type>'
-
-)
-
-```
-```
-MERGE INTO target\_table target
-
-USING source\_table source
-
-ON target.id = source.id
-
-WHEN MATCHED AND source.status = 'update' THEN
-
- UPDATE SET
-
-   target.email = source.email,
-
-   target.status = source.status
-
-WHEN MATCHED AND source.status = 'delete' THEN
-
- DELETE
-
-WHEN NOT MATCHED THEN
-
- INSERT (id, first\_name, email, sign\_up\_date
-
- status)
-```
-
-- Dynamic Value References using {{ }} notation unlock powerful runtime capabilities that make workflows truly adaptive:
-
-Job Context References:
-
-{{job.start_time.day}} - Access execution timing for date-based processing
-
-{{job.run_id}} - Unique identifier for tracking and logging
-
-{{job.parameters.environment}} - Access job-level parameters dynamically
-
-Task Context References:
-
-{{task.name}} - Useful for logging and dynamic path generation
-
-{{task.retry_count}} - Track retry attempts for debugging
-
-Inter-Task Communication:
-
-{{tasks.data-validation.values.record_count}} - Access computed results from upstream tasks
-
-{{tasks.file-processor.values.output_path}} - Use dynamic paths generated by other tasks
-
-* orders_silver with all three data quality constraints
-```
-CREATE OR REFRESH STREAMING TABLE 2_silver_db.orders_silver
- (
-   CONSTRAINT valid_notifications EXPECT (notifications IN ('Y','N')),
-   CONSTRAINT valid_date EXPECT (order_timestamp > "2021-01-01") ON VIOLATION FAIL UPDATE,
-   CONSTRAINT valid_id EXPECT (customer_id IS NOT NULL) ON VIOLATION DROP ROW
- )
-AS
-SELECT
-  order_id,
-  timestamp(order_timestamp) AS order_timestamp,
-  customer_id,
-  notifications
-FROM STREAM 1_bronze_db.orders_bronze;
-```
+*Condensed reference — pair with the full 7-section DDEA study guide for complete exam coverage.*
