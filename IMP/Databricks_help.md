@@ -61,7 +61,36 @@
 - **`databricks bundle plan`**: previews what a bundle deployment will change (create/update/delete) — like `terraform plan` — without applying anything.
 - **Databricks CLI v0.200+**: required for bundle deployments. Install via official curl script (Linux) or the `databricks/setup-cli` GitHub Action (CI/CD pipelines).
 - **Git automation for workspace-level Git Folders**: use webhooks + the **Repos API** update endpoint to auto-pull latest changes into a production Git folder after a merge. Valid, but Databricks recommends **Declarative Automation Bundles (DABs)** for more complete CI/CD.
-
+- Spot instances are ideal for stateless, fault-tolerant workloads—such as batch processing jobs that can be retried without significant data loss or user impact. These jobs are often time-flexible and can tolerate interruptions, making them a good match for spot instances.
+- Databricks splits its architecture into two core layers: the Control Plane and the Compute Plane (historically called the Data Plane). While the notebook's code template and metadata reside in the control plane, the actual execution of data processing commands occurs entirely within the compute plane on assigned compute resources (clusters running Apache Spark). This ensures that your actual confidential raw data is processed within a secure network boundary (either classic or serverless) and never exposes your raw data streams to Databricks' core control systems.
 ---
 
 *Condensed reference — pair with the full 7-section DDEA study guide for complete exam coverage.*
+
+### Memory optimized
+- A memory-optimized resources ensures that more in-memory operations can be completed without disk spills, thereby significantly reducing shuffle overhead and improving performance.
+- 
+### read data using Spark JDBC and write directly into a Unity Catalog managed table.
+```
+df = (
+     spark.read
+          .format("jdbc")
+          .option("url", "jdbc:postgresql://host:5432/db")
+          .option("dbtable", "schema.source_table")
+          .option("user", "username")
+          .option("password", "password")
+          .load()
+)
+ 
+df.write.mode("overwrite").saveAsTable("catalog.schema.target_table")
+```
+### hasTagValue
+- To check if a column has a specific tag key (pii) with a specific tag value (credit_card), you must use the hasTagValue('tag_key', 'tag_value')
+```
+CREATE POLICY banking_policy ON SCHEMA bank.safebox
+COLUMN MASK bank.safebox.mask_credit_card
+TO financial_analysts EXCEPT admins
+FOR TABLES
+_______MATCH COLUMNS hasTagValue('pii','credit_card') AS cc___________________
+ON COLUMN cc;
+```
