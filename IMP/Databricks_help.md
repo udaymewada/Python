@@ -94,3 +94,19 @@ FOR TABLES
 _______MATCH COLUMNS hasTagValue('pii','credit_card') AS cc___________________
 ON COLUMN cc;
 ```
+### Deletion Vectors (delta.enableDeletionVectors)
+
+Can only be enabled when creating a table in some Databricks runtime versions.
+For materialized views or streaming tables, you cannot enable them via ALTER TABLE; you must recreate the table with the property.
+### Row Tracking (delta.enableRowTracking)
+
+Required for Change Data Feed (CDF) to work properly.
+### Change Data Feed (delta.enableChangeDataFeed)
+
+Allows you to query row-level changes using table_changes().
+```
+ALTER TABLE <table-name> SET TBLPROPERTIES (
+  delta.enableDeletionVectors = true,
+  delta.enableRowTracking = true,
+  delta.enableChangeDataFeed = true);
+```
