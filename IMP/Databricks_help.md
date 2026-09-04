@@ -67,6 +67,13 @@
 - 
 ---
 
+### advantages SET MANAGED 
+- Retains table history and supports rolling back to an external table.
+- Keeps the same table configurations, including name, settings, permissions, and views.
+- Supports rolling back the converted managed table to an external table.
+- Redirects path-based reads and writes to allow legacy code to function after conversion.
+
+
 *Condensed reference — pair with the full 7-section DDEA study guide for complete exam coverage.*
 
 ### Memory optimized
@@ -112,3 +119,4 @@ ALTER TABLE <table-name> SET TBLPROPERTIES (
   delta.enableRowTracking = true,
   delta.enableChangeDataFeed = true);
 ```
+
